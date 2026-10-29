@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
   title: "Наш район",
-  description: "Кооперативная браузерная 3D-игра для 2–4 игроков.",
+  description:
+    "Наш район — помогайте соседям и готовьтесь к грозе вместе. Демонстрация интерфейса кооперативной игры.",
 };
 
 export default function RootLayout({
@@ -11,7 +13,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ru">
-      <body>{children}</body>
+      <body>
+        <AppShell>{children}</AppShell>
+      </body>
     </html>
   );
 }
