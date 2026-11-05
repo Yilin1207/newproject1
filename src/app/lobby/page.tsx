@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useState, type FormEvent } from "react";
 import Neighborhood from "@/components/Neighborhood";
 import { Avatar, Icon, Notice, SectionTitle } from "@/components/ui";
@@ -14,6 +15,18 @@ import {
   selectCharacter,
   useDemo,
 } from "@/lib/demo-store";
+import { getOutcome, type GameState } from "@/game/model";
+
+const DistrictGame = dynamic(() => import("@/game/Game"), {
+  ssr: false,
+  loading: () => (
+    <div role="status" className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-5 bg-[#263f38] text-[#eee9d1]">
+      <span className="h-10 w-10 animate-spin rounded-full border border-[#c9d2af]/30 border-t-[#e7d49b]" />
+      <p className="text-xl">Открываем район…</p>
+      <p className="text-xs text-[#bbc9ae]">Загружаем игровую сцену</p>
+    </div>
+  ),
+});
 
 export default function LobbyPage() {
   const demo = useDemo();
@@ -25,6 +38,7 @@ export default function LobbyPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [gameOpen, setGameOpen] = useState(false);
   const current = characters.find((c) => c.id === demo.character)!;
   function join(event: FormEvent) {
     event.preventDefault();
@@ -57,6 +71,25 @@ export default function LobbyPage() {
     : 0;
   return (
     <>
+      {room && (gameOpen || room.phase === "preparing") && (
+        <DistrictGame
+          character={demo.character}
+          name={demo.name}
+          reducedMotion={demo.reducedMotion}
+          hints={demo.notifications}
+          onExit={() => {
+            setGameOpen(false);
+            changeRoom({ phase: "lobby", ready: false, supplies: false, bridge: false, power: null });
+          }}
+          onComplete={(game: GameState) => {
+            setGameOpen(true);
+            changeRoom({ phase: "preparing", supplies: game.delivered.length === 3, bridge: game.bridge, power: game.power });
+            const outcome = getOutcome(game);
+            finishDemo({ title: outcome.title, personalComplete: outcome.personalComplete });
+            return !hasStorageError();
+          }}
+        />
+      )}
       <SectionTitle
         label="Здесь собираются соседи"
         title={
@@ -336,6 +369,7 @@ export default function LobbyPage() {
                     <button
                       disabled={!room.ready}
                       onClick={() => {
+                        setGameOpen(true);
                         changeRoom({ phase: "preparing" });
                         setNotice("");
                       }}
@@ -583,3 +617,4 @@ export default function LobbyPage() {
     </>
   );
 }
+

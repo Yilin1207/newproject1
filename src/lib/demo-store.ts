@@ -48,6 +48,7 @@ export type Result = {
   title: string;
   score: number;
   power: Power;
+  personalComplete?: boolean;
 };
 export type DemoState = {
   name: string;
@@ -200,7 +201,7 @@ export function changeRoom(values: Partial<DemoRoom>) {
 export function leaveRoom() {
   update({ ...state, room: null });
 }
-export function finishDemo() {
+export function finishDemo(details?: { title: string; personalComplete: boolean }) {
   if (!state.room || state.room.phase !== "preparing") return;
   const score =
     Number(state.room.supplies) +
@@ -211,12 +212,13 @@ export function finishDemo() {
     date: new Date().toISOString(),
     score,
     power: state.room.power,
-    title:
+    ...(details ? { personalComplete: details.personalComplete } : {}),
+    title: details?.title ?? (
       score === 3
         ? "Район готов к грозе"
         : score >= 1
           ? "Вместе справимся"
-          : "Гроза застала врасплох",
+          : "Гроза застала врасплох"),
   };
   update({
     ...state,
