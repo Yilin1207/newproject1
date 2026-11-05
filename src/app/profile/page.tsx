@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { Avatar, Icon, Notice, SectionTitle } from "@/components/ui";
+import Achievements from "@/components/Achievements";
 import {
   characters,
   clearHistory,
@@ -24,6 +25,11 @@ function ProfileForm({
   const [notifications, setNotifications] = useState(profile.notifications);
   const [reducedMotion, setReducedMotion] = useState(profile.reducedMotion);
   const [error, setError] = useState("");
+  const dirty =
+    name !== profile.name ||
+    character !== profile.character ||
+    notifications !== profile.notifications ||
+    reducedMotion !== profile.reducedMotion;
   function submit(event: FormEvent) {
     event.preventDefault();
     if (name.trim().length < 2) {
@@ -35,15 +41,13 @@ function ProfileForm({
     onSaved(
       hasStorageError()
         ? "Изменения применены, но браузер запретил их сохранение на устройстве."
-        : "Профиль сохранён. Соседи будут знать вас по этому имени.",
+        : "Профиль сохранён.",
     );
   }
   return (
-    <form onSubmit={submit} className="card p-6 md:p-7">
-      <h2 className="text-lg font-semibold">Знакомство с соседями</h2>
-      <p className="mt-2 text-sm text-muted">
-        Немного о вас и вашем персонаже.
-      </p>
+    <form onSubmit={submit} className="card profile-form p-6 md:p-7">
+      <h2 className="text-lg font-semibold">Ваш персонаж</h2>
+      <p className="mt-2 text-sm text-muted">Имя, герой и настройки.</p>
       <label
         htmlFor="profile-name"
         className="mt-6 mb-2 block text-xs font-medium"
@@ -67,7 +71,7 @@ function ProfileForm({
         aria-describedby={error ? "name-error" : "name-help"}
       />
       <p id="name-help" className="mt-2 text-xs text-muted">
-        От 2 до 24 символов. Имя будет видно в демо-комнате.
+        От 2 до 24 символов.
       </p>
       {error && (
         <p id="name-error" role="alert" className="mt-2 text-sm text-[#a44f3d]">
@@ -93,7 +97,7 @@ function ProfileForm({
                 }}
                 className="absolute top-2 right-2 h-3 w-3 accent-[#42664e]"
               />
-              <Avatar color={c.color} />
+              <Avatar character={c.id} />
               <span className="text-xs font-medium">{c.name}</span>
             </label>
           ))}
@@ -118,7 +122,7 @@ function ProfileForm({
               setNotifications(e.target.checked);
               onSaved("");
             }}
-            className="h-5 w-5 accent-[#42664e]"
+            className="profile-switch"
           />
         </label>
         <label className="mt-5 flex cursor-pointer items-center justify-between gap-4">
@@ -135,13 +139,16 @@ function ProfileForm({
               setReducedMotion(e.target.checked);
               onSaved("");
             }}
-            className="h-5 w-5 accent-[#42664e]"
+            className="profile-switch"
           />
         </label>
       </div>
-      <button type="submit" className="button-primary mt-7 w-full sm:w-auto">
-        Сохранить изменения <Icon name="check" />
-      </button>
+      <div className="profile-save-row">
+        <button type="submit" disabled={!dirty} className="button-primary">
+          Сохранить <Icon name="check" />
+        </button>
+        <span role="status">{dirty ? "Есть изменения" : "Всё сохранено"}</span>
+      </div>
     </form>
   );
 }
@@ -150,18 +157,25 @@ export default function ProfilePage() {
   const demo = useDemo();
   const [confirmClear, setConfirmClear] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
+  const [filter, setFilter] = useState<"all" | "best" | "personal">("all");
   const character = characters.find((c) => c.id === demo.character)!;
   const saved = demo.history.filter((r) => r.score === 3).length;
+  const visibleHistory = demo.history.filter((result) =>
+    filter === "best"
+      ? result.score === 3
+      : filter === "personal"
+        ? result.personalComplete === true
+        : true,
+  );
   return (
     <>
-      <SectionTitle label="Ваше место в истории" title="Мой профиль">
-        Знакомьтесь с соседями, выбирайте персонажа и собирайте воспоминания о
-        вашем районе.
+      <SectionTitle label="Житель района" title="Мой профиль">
+        Ваш герой, настройки и результаты игр.
       </SectionTitle>
       <div className="grid items-start gap-6 xl:grid-cols-[.7fr_1.3fr]">
-        <aside className="card p-7 text-center">
+        <aside className="card profile-passport p-7 text-center">
           <div className="flex justify-center">
-            <Avatar color={character.color} size="large" />
+            <Avatar character={character.id} size="large" />
           </div>
           <h2 className="mt-5 text-2xl font-semibold">{demo.name}</h2>
           <span className="mt-3 inline-block rounded-full bg-[#edf0e4] px-3 py-1.5 text-[10px] font-medium tracking-wide text-forest">
@@ -175,7 +189,7 @@ export default function ProfilePage() {
           <div className="mt-7 grid grid-cols-2 divide-x divide-line border-y border-line py-5">
             <div>
               <p className="text-3xl font-semibold">{demo.history.length}</p>
-              <p className="mt-2 text-[10px] text-muted">Завершено демо</p>
+              <p className="mt-2 text-[10px] text-muted">Историй пройдено</p>
             </div>
             <div>
               <p className="text-3xl font-semibold">{saved}</p>
@@ -209,10 +223,11 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+      <Achievements history={demo.history} />
       <section className="card mt-7 p-6 md:p-7">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold">Истории вашего района</h2>
+            <h2 className="text-lg font-semibold">Ваши истории</h2>
             <p className="mt-2 text-sm text-muted">
               Каждый выбор оставляет след.
             </p>
@@ -226,6 +241,26 @@ export default function ProfilePage() {
             </button>
           )}
         </div>
+        {demo.history.length > 0 && (
+          <div className="history-filters" aria-label="Фильтр истории">
+            {(
+              [
+                { id: "all", label: "Все" },
+                { id: "best", label: "Район спасён" },
+                { id: "personal", label: "Личная цель" },
+              ] as const
+            ).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={filter === item.id}
+                onClick={() => setFilter(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        )}
         {confirmClear && (
           <div className="mt-5 rounded-xl bg-[#f4efdf] p-4">
             <p className="text-sm">Удалить все результаты из этого браузера?</p>
@@ -268,9 +303,13 @@ export default function ProfilePage() {
               Начать историю <Icon name="arrow" className="h-4 w-4" />
             </Link>
           </div>
+        ) : visibleHistory.length === 0 ? (
+          <p className="py-10 text-center text-sm text-muted" role="status">
+            Таких историй пока нет. Всё впереди.
+          </p>
         ) : (
           <ul className="mt-6 divide-y divide-line">
-            {demo.history.map((result) => (
+            {visibleHistory.map((result) => (
               <li
                 key={result.id}
                 className="flex flex-wrap items-center gap-4 py-5"
@@ -282,6 +321,12 @@ export default function ProfilePage() {
                 </span>
                 <div className="min-w-40 flex-1">
                   <h3 className="text-sm font-semibold">{result.title}</h3>
+                  {result.personalComplete === true && (
+                    <span className="history-personal">
+                      <Icon name="heart" className="h-3 w-3" /> Личная цель
+                      выполнена
+                    </span>
+                  )}
                   <p className="mt-1 text-xs leading-6 text-muted">
                     {result.power === "shelter"
                       ? "Свет в общем доме"

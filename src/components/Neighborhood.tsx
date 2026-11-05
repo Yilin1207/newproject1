@@ -1,18 +1,28 @@
+import { useId } from "react";
+
 export default function Neighborhood({
   compact = false,
 }: {
   compact?: boolean;
 }) {
+  const id = useId();
+  const rainId = `${id}-rain`;
+  const skyId = `${id}-sky`;
   return (
     <svg
       viewBox="0 0 760 500"
+      preserveAspectRatio="xMidYMid slice"
       role="img"
       aria-label="Иллюстрация района: уютные дома, деревья, мост и надвигающаяся гроза"
-      className={`h-full w-full bg-[#e9eee3] ${compact ? "" : "min-h-64"}`}
+      className={`h-full w-full bg-[#eaf0df] ${compact ? "" : "min-h-64"}`}
     >
       <defs>
+        <linearGradient id={skyId} x2="0" y2="1">
+          <stop stopColor="#eaf0df" />
+          <stop offset="1" stopColor="#dce8d2" />
+        </linearGradient>
         <pattern
-          id="rain"
+          id={rainId}
           width="32"
           height="32"
           patternUnits="userSpaceOnUse"
@@ -21,13 +31,28 @@ export default function Neighborhood({
           <path d="M2 0v8" stroke="#b4c9c3" strokeWidth="2" />
         </pattern>
       </defs>
-      <rect width="760" height="500" fill="#e9eee3" />
+      <rect width="760" height="500" fill={`url(#${skyId})`} />
+      <circle cx="590" cy="90" r="68" fill="#edcb8b" opacity=".12" />
       <circle cx="590" cy="90" r="47" fill="#edcb8b" />
+      <path
+        d="M290 91q7-8 14 0m0 0q7-8 14 0M340 115q5-6 10 0m0 0q5-6 10 0"
+        stroke="#829780"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+      />
       <path d="M0 230Q170 70 340 218T760 180V500H0" fill="#d4dfca" />
       <path d="M0 315Q180 200 380 300T760 255V500H0" fill="#c5d5bb" />
       <path
         d="M590 300q-100 30-80 90t-80 110h160q70-50 30-110t140-70v-35Z"
         fill="#adc9cb"
+      />
+      <path
+        d="M565 334l25-3m-48 38 30-2m-17 75 23-4m-82 33 32-4"
+        stroke="#deebdf"
+        strokeWidth="2"
+        strokeLinecap="round"
+        opacity=".7"
       />
       <path
         d="M-10 427Q190 355 370 405t380 0"
@@ -133,7 +158,7 @@ export default function Neighborhood({
         <ellipse cx="442" cy="60" rx="28" ry="22" />
       </g>
       <path d="m160 119-15 24h15l-9 22 31-34h-19l13-12Z" fill="#e3b96e" />
-      <rect x="62" y="124" width="164" height="58" fill="url(#rain)" />
+      <rect x="62" y="124" width="164" height="58" fill={`url(#${rainId})`} />
       <g fill="#748e7a" opacity=".55">
         {[60, 210, 450, 670, 720].map((x, i) => (
           <path

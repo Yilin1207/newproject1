@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import type { CharacterId } from "@/game/model";
+import CharacterPortrait from "./CharacterPortrait";
 
 export type IconName =
   | "home"
@@ -110,36 +112,17 @@ export function Icon({
 }
 
 export function Avatar({
-  color = "#90b7a0",
+  character = "mira",
   size = "normal",
 }: {
-  color?: string;
+  character?: CharacterId;
   size?: "normal" | "large";
 }) {
   return (
-    <svg
-      viewBox="0 0 100 100"
+    <CharacterPortrait
+      character={character}
       className={size === "large" ? "h-28 w-28" : "h-12 w-12"}
-      aria-hidden="true"
-    >
-      <rect width="100" height="100" rx="30" fill={color} fillOpacity=".28" />
-      <path d="M17 100v-15c0-24 66-24 66 0v15" fill={color} />
-      <rect x="43" y="57" width="14" height="17" rx="5" fill="#e6bd9d" />
-      <ellipse cx="50" cy="42" rx="23" ry="25" fill="#f3d1b3" />
-      <path
-        d="M27 43C18 13 62 3 72 31l2 18-10-15c-11 7-23 2-27-3Z"
-        fill="#40514d"
-      />
-      <circle cx="42" cy="44" r="2" fill="#40514d" />
-      <circle cx="60" cy="44" r="2" fill="#40514d" />
-      <path
-        d="M46 55q5 4 10-1"
-        fill="none"
-        stroke="#a16f5e"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
+    />
   );
 }
 
