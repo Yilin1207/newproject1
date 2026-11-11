@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
-import { BufferGeometry, CanvasTexture, CatmullRomCurve3, Color, DoubleSide, Float32BufferAttribute, Group, InstancedMesh, Matrix4, Mesh, MeshStandardMaterial, Object3D, RepeatWrapping, ShaderMaterial, SRGBColorSpace, Vector3 } from "three";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { BufferGeometry, CanvasTexture, CatmullRomCurve3, Color, DoubleSide, Float32BufferAttribute, Group, InstancedMesh, Object3D, RepeatWrapping, ShaderMaterial, SRGBColorSpace, Vector3 } from "three";
+import { batchStaticMeshes } from "./static-batch";
 
 export type WorldProps = { power: "shelter" | "shop" | null; bridge: boolean; storm: number; reducedMotion: boolean };
 type V3 = [number, number, number];
+const SHELTER_CABLE: V3[] = [[-15, 3.7, 8], [-18, 3.1, 0], [-16.3, 5.8, -6.4]];
+const SHOP_CABLE: V3[] = [[-15, 3.7, 8], [-2, 4, 8], [16.3, 5.8, -6.4]];
 
 /** Batch complete static props by material; animated foliage and weather stay independent. */
 function StaticBatch({ children, version = "" }: { children: ReactNode; version?: string }) {
@@ -14,37 +16,7 @@ function StaticBatch({ children, version = "" }: { children: ReactNode; version?
   useLayoutEffect(() => {
     const group = root.current;
     if (!group) return;
-    group.updateWorldMatrix(true, true);
-    const inverse = new Matrix4().copy(group.matrixWorld).invert();
-    const batches = new Map<string, { geometries: BufferGeometry[]; material: MeshStandardMaterial; shadow: boolean; receive: boolean }>();
-    const originals: Mesh[] = [];
-    group.traverse((node) => {
-      if (!(node instanceof Mesh) || node instanceof InstancedMesh || !(node.material instanceof MeshStandardMaterial) || !node.visible) return;
-      const material = node.material;
-      const key = [material.color.getHexString(), material.emissive.getHexString(), material.emissiveIntensity, material.roughness, material.metalness, material.map?.uuid || "", material.side, material.opacity, material.transparent, node.castShadow, node.receiveShadow].join("/");
-      const transformed = node.geometry.clone().applyMatrix4(new Matrix4().multiplyMatrices(inverse, node.matrixWorld));
-      const geometry = transformed.index ? transformed.toNonIndexed() : transformed;
-      if (geometry !== transformed) transformed.dispose();
-      if (!geometry.attributes.uv) geometry.setAttribute("uv", new Float32BufferAttribute(new Float32Array(geometry.attributes.position.count * 2), 2));
-      if (!geometry.attributes.normal) geometry.computeVertexNormals();
-      const batch = batches.get(key);
-      if (batch) batch.geometries.push(geometry);
-      else batches.set(key, { geometries: [geometry], material, shadow: node.castShadow, receive: node.receiveShadow });
-      originals.push(node);
-    });
-    const merged: Mesh[] = [];
-    batches.forEach(({ geometries, material, shadow, receive }) => {
-      const geometry = mergeGeometries(geometries, false);
-      geometries.forEach((geo) => geo.dispose());
-      if (!geometry) return;
-      const mesh = new Mesh(geometry, material); mesh.castShadow = shadow; mesh.receiveShadow = receive;
-      group.add(mesh); merged.push(mesh);
-    });
-    originals.forEach((mesh) => { mesh.visible = false; });
-    return () => {
-      merged.forEach((mesh) => { group.remove(mesh); mesh.geometry.dispose(); });
-      originals.forEach((mesh) => { mesh.visible = true; });
-    };
+    return batchStaticMeshes(group);
   }, [version]);
   return <group ref={root}>{children}</group>;
 }
@@ -201,12 +173,14 @@ function Tree({ at, scale = 1, gold = false, seed = 1, wind = true }: { at: V3; 
     {[-0.45, 0.1, 0.6].map((x, i) => <mesh key={i} position={[x, 0.18, (i - 1) * 0.45]} scale={[0.7, 0.35, 0.5]} castShadow><icosahedronGeometry args={[0.6, 0]} /><meshStandardMaterial color="#8e9678" /></mesh>)}
     </StaticBatch>
     <group ref={crown} position={[0, 3.3, 0]}>
+      <StaticBatch>
       {[[0, 1.5, 0, 1.85], [-1.1, 0.5, 0.1, 1.45], [1.1, 0.7, 0.1, 1.55], [0, 0.7, -1, 1.5], [-0.3, 0.3, 0.9, 1.4], [0.2, 2, -0.25, 1.25]].map(([x, y, z, r], i) => <mesh key={i} position={[x, y, z]} scale={[1, 0.83, 0.9]} rotation={[i * 0.2, seed + i, 0]} castShadow receiveShadow><icosahedronGeometry args={[r, 1]} /><meshStandardMaterial color={colors[i % colors.length]} roughness={1} /></mesh>)}
+      </StaticBatch>
     </group>
   </group>;
 }
 
-function Vegetation({ reducedMotion }: { reducedMotion: boolean }) {
+const Vegetation = memo(function Vegetation({ reducedMotion }: { reducedMotion: boolean }) {
   const grass = useRef<InstancedMesh>(null);
   const flowers = useRef<InstancedMesh>(null);
   const blade = useMemo(() => {
@@ -247,7 +221,7 @@ function Vegetation({ reducedMotion }: { reducedMotion: boolean }) {
       [-24, -7, 1.2, 1], [-24, 3, 1, 1], [-6, -18, 1.4, 0], [5, -20, 1.2, 1], [23, -14, 1.4, 1], [25, -2, 1.15, 0], [24, 7, 1.2, 1], [6, 8, 0.9, 1], [-5, 8, 1.1, 1], [-26, 9, 1, 0], [-23, 22, 1.4, 1], [-10, 23, 1.25, 1], [4, 24, 1.4, 0], [25, 25, 1.6, 1], [-32, -18, 1.8, 1], [34, -22, 1.8, 0], [0, -32, 1.6, 1], [-18, -30, 1.8, 1], [17, -31, 1.7, 0], [-38, 1, 1.8, 0], [37, 1, 1.8, 1], [-34, 32, 1.8, 0], [37, 31, 1.9, 1],
     ].map(([x, z, scale, gold], i) => <Tree key={i} at={[x, 0, z]} scale={scale} gold={!!gold} seed={i * 3.4} wind={!reducedMotion} />)}
   </group>;
-}
+});
 
 function Lamp({ at, on = true }: { at: V3; on?: boolean }) {
   return <group position={at}><StaticBatch version={String(on)}>
@@ -274,7 +248,8 @@ function Water({ storm, reducedMotion }: { storm: number; reducedMotion: boolean
 
 function Bridge({ repaired, storm }: { repaired: boolean; storm: number }) {
   return <group position={[16, 0, 14]}>
-    {Array.from({ length: 20 }, (_, i) => <Box key={i} at={[0, 0.1 + Math.sin(i * 0.15) * 0.05 - (!repaired && i > 7 && i < 11 ? storm * 0.17 : 0), -3.1 + i * 0.33]} size={[4.4, 0.18, 0.3]} color={i % 3 ? "#a58c63" : "#b59c70"} rotation={[!repaired && i === 8 ? storm * 0.4 : 0, 0, !repaired && i === 9 ? 0.025 + storm * 0.1 : 0]} />)}
+    <StaticBatch version={String(repaired)}>
+    {Array.from({ length: 20 }, (_, i) => i < 8 || i > 10 ? <Box key={i} at={[0, 0.1 + Math.sin(i * 0.15) * 0.05, -3.1 + i * 0.33]} size={[4.4, 0.18, 0.3]} color={i % 3 ? "#a58c63" : "#b59c70"} /> : null)}
     {[-2, 2].map((x) => <group key={x}>
       <Box at={[x, -0.16, 0]} size={[0.22, 0.5, 7.2]} color="#786d52" />
       {[-2.8, -1.4, 0, 1.4, 2.8].map((z, i) => <group key={z}><Box at={[x, 0.78, z]} size={[0.18, 1.45, 0.18]} color="#8e7a57" rotation={[0, 0, !repaired && i === 2 ? x * 0.07 : 0]} /><Box at={[x, 1.53, z]} size={[0.24, 0.08, 0.24]} color="#c4ac7b" /></group>)}
@@ -284,12 +259,15 @@ function Bridge({ repaired, storm }: { repaired: boolean; storm: number }) {
     </group>)}
     <Sign text="МОСТ" sub={repaired ? "укреплён · путь свободен" : "нужны доски и забота"} at={[-3.35, 1.8, -3.4]} width={2.1} />
     <Cylinder at={[-3.35, 0.8, -3.4]} args={[0.065, 0.09, 1.6, 7]} color="#7c7154" />
+    </StaticBatch>
+    {[8, 9, 10].map(i => <Box key={i} at={[0, 0.1 + Math.sin(i * 0.15) * 0.05 - (!repaired ? storm * 0.17 : 0), -3.1 + i * 0.33]} size={[4.4, 0.18, 0.3]} color={i % 3 ? "#a58c63" : "#b59c70"} rotation={[!repaired && i === 8 ? storm * 0.4 : 0, 0, !repaired && i === 9 ? 0.025 + storm * 0.1 : 0]} />)}
   </group>;
 }
 
 function AutumnLeaves({ reducedMotion, storm }: { reducedMotion: boolean; storm: number }) {
   const mesh = useRef<InstancedMesh>(null);
   const dummy = useMemo(() => new Object3D(), []);
+  const staticStorm = useRef<number | null>(null);
   const seeds = useMemo(() => {
     const random = makeRng(901);
     return Array.from({ length: 100 }, () => ({ x: random() * 55 - 27.5, z: random() * 46 - 23, y: random() * 7 + 0.2, phase: random() * 7, scale: 0.025 + random() * 0.045 }));
@@ -301,6 +279,8 @@ function AutumnLeaves({ reducedMotion, storm }: { reducedMotion: boolean; storm:
   }, [seeds]);
   useFrame(({ clock }) => {
     if (!mesh.current) return;
+    if (reducedMotion && staticStorm.current === storm) return;
+    staticStorm.current = reducedMotion ? storm : null;
     const t = reducedMotion ? 0 : clock.elapsedTime;
     seeds.forEach((seed, i) => {
       dummy.position.set(seed.x + Math.sin(t * 0.3 + seed.phase) * (0.8 + storm), (seed.y - t * (0.13 + storm * 0.25) % 7 + 7) % 7 + 0.3, seed.z + Math.cos(t * 0.2 + seed.phase) * 0.6);
@@ -339,7 +319,7 @@ function DistantHouse({ at, scale = 1, rotation = 0 }: { at: V3; scale?: number;
   return <group position={at} scale={scale} rotation={[0, rotation, 0]}><StaticBatch><Box at={[0, 2, 0]} size={[6, 4, 5]} color="#b7b899" /><group position={[0, 4, 0]}><Roof width={6.9} depth={6} height={1.7} color="#8b7b5d" /></group><Window x={-1.5} y={2} z={2.55} lit /><Window x={1.5} y={2} z={2.55} lit /><Box at={[0, 0.9, 2.56]} size={[1, 1.8, 0.1]} color="#5d7a69" /></StaticBatch></group>;
 }
 
-export default function World({ power, bridge, storm, reducedMotion }: WorldProps) {
+const World = memo(function World({ power, bridge, storm, reducedMotion }: WorldProps) {
   const paving = usePavingTexture();
   const meadow = useMeadowTexture();
   return <group>
@@ -354,15 +334,18 @@ export default function World({ power, bridge, storm, reducedMotion }: WorldProp
     <Bridge repaired={bridge} storm={storm} />
     <Water storm={storm} reducedMotion={reducedMotion} />
     {[-1, 1].map((side) => <group key={side}>
+      <StaticBatch>
       <Box at={[0, -0.19, 14 + side * 2.66]} size={[110, 0.6, 0.4]} color="#84937e" />
       <Box at={[0, 0.1, 14 + side * 2.9]} size={[110, 0.2, 0.7]} color="#a5a992" />
       {Array.from({ length: 16 }, (_, i) => i < 11 || i > 12 ? <group key={i} position={[-28 + i * 3.6, 0, 14 + side * 3.15]}><Cylinder at={[0, 0.54, 0]} args={[0.075, 0.095, 1, 7]} color="#788b78" /><Box at={[1.8, 0.91, 0]} size={[3.6, 0.065, 0.06]} color="#96a18a" /></group> : null)}
+      </StaticBatch>
     </group>)}
     <Vegetation reducedMotion={reducedMotion} />
     <AutumnLeaves storm={storm} reducedMotion={reducedMotion} />
     {[[-6.9, 3.4], [6.9, -3.4], [-19, -3], [19, -3], [-21, 9], [12.3, 10], [19.7, 18], [-8, 19]].map(([x, z], i) => <Lamp key={i} at={[x, 0, z]} on={storm < 0.4 || (power === "shelter" && i % 2 === 0) || (power === "shop" && i % 2 === 1)} />)}
     <Bench at={[-5.2, 0, -3.4]} rotation={0.6} /><Bench at={[5.1, 0, 3.6]} rotation={-2.5} /><Bench at={[-9, 0, 9]} rotation={Math.PI} />
     <group position={[0, 0, 0]}>
+      <StaticBatch>
       <Cylinder at={[0, 0.17, 0]} args={[1.5, 1.65, 0.34, 20]} color="#aaa98b" />
       <Cylinder at={[0, 0.48, 0]} args={[1.24, 1.32, 0.32, 20]} color="#bdba98" />
       <Cylinder at={[0, 0.66, 0]} args={[1.35, 1.35, 0.1, 20]} color="#d0c6a1" />
@@ -370,16 +353,19 @@ export default function World({ power, bridge, storm, reducedMotion }: WorldProp
       <Cylinder at={[0, 1.16, 0]} args={[0.23, 0.36, 0.94, 12]} color="#b2ac87" />
       <Cylinder at={[0, 1.68, 0]} args={[0.73, 0.36, 0.22, 16]} color="#c6bd95" />
       <Cylinder at={[0, 1.82, 0]} args={[0.17, 0.22, 0.2, 10]} color="#baa978" />
+      </StaticBatch>
     </group>
     <group position={[0, 0, -7.7]}>
       <Cylinder at={[0, 1.6, 0]} args={[0.07, 0.1, 3.2, 8]} color="#7b7352" />
       <Sign at={[0, 2.6, 0]} text="НАШ РАЙОН" sub="маленькие дела меняют всё" width={3.4} />
       <Sign at={[-1.2, 1.75, 0.08]} text="← Общий дом" width={2.1} /><Sign at={[1.2, 1.2, 0.08]} text="Магазин →" width={2.1} />
     </group>
-    <Cable points={[[-15, 3.7, 8], [-18, 3.1, 0], [-16.3, 5.8, -6.4]]} powered={power === "shelter"} />
-    <Cable points={[[-15, 3.7, 8], [-2, 4, 8], [16.3, 5.8, -6.4]]} powered={power === "shop"} />
+    <Cable points={SHELTER_CABLE} powered={power === "shelter"} />
+    <Cable points={SHOP_CABLE} powered={power === "shop"} />
     <DistantHouse at={[-12, 0, -26]} scale={0.95} rotation={0.15} /><DistantHouse at={[14, 0, -28]} scale={1.1} rotation={-0.2} /><DistantHouse at={[-29, 0, -16]} scale={1} rotation={0.6} /><DistantHouse at={[30, 0, -14]} scale={1} rotation={-0.7} />
     {Array.from({ length: 16 }, (_, i) => { const a = i / 16 * Math.PI * 2; return <mesh key={i} position={[Math.sin(a) * (59 + i % 3 * 7), -4, Math.cos(a) * 62]} scale={[14 + i % 4 * 5, 15 + i % 3 * 6, 12]} rotation={[0, i, 0]} receiveShadow><icosahedronGeometry args={[1, 1]} /><meshStandardMaterial color={i % 2 ? "#718e80" : "#799486"} roughness={1} /></mesh>; })}
-    {[-1, 1].map((s) => <group key={s} position={[s * 25, 0, -5]}>{Array.from({ length: 5 }, (_, i) => <group key={i} position={[0, 0, i * 2]}><Cylinder at={[0, 0.45, 0]} args={[0.08, 0.1, 0.9, 7]} color="#a38f61" /><Box at={[0, 0.68, 1]} size={[0.065, 0.11, 2]} color="#b7a276" /><Box at={[0, 0.36, 1]} size={[0.065, 0.11, 2]} color="#b7a276" /></group>)}</group>)}
+    {[-1, 1].map((s) => <group key={s} position={[s * 25, 0, -5]}><StaticBatch>{Array.from({ length: 5 }, (_, i) => <group key={i} position={[0, 0, i * 2]}><Cylinder at={[0, 0.45, 0]} args={[0.08, 0.1, 0.9, 7]} color="#a38f61" /><Box at={[0, 0.68, 1]} size={[0.065, 0.11, 2]} color="#b7a276" /><Box at={[0, 0.36, 1]} size={[0.065, 0.11, 2]} color="#b7a276" /></group>)}</StaticBatch></group>)}
   </group>;
-}
+});
+
+export default World;

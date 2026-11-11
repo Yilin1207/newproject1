@@ -1,16 +1,25 @@
 "use client";
 
-import { useId, useState } from "react";
+import { memo, useId, useState } from "react";
 import { Icon } from "@/components/ui";
-import { getOutcome, PERSONAL_GOALS, type GameState } from "./model";
+import { PERSONAL_GOALS, type GameState } from "./model";
 
-export default function QuestPanel({ game }: { game: GameState }) {
+type QuestPanelProps = Pick<GameState, "bridge" | "power" | "character"> & {
+  suppliesCount: number;
+  personalComplete: boolean;
+};
+
+const QuestPanel = memo(function QuestPanel({
+  suppliesCount,
+  bridge,
+  power,
+  character,
+  personalComplete,
+}: QuestPanelProps) {
   const [expanded, setExpanded] = useState(true);
   const panelId = useId();
-  const done =
-    game.delivered.length + Number(game.bridge) + Number(!!game.power);
-  const outcome = getOutcome(game);
-  const goal = PERSONAL_GOALS[game.character];
+  const done = suppliesCount + Number(bridge) + Number(!!power);
+  const goal = PERSONAL_GOALS[character];
   return (
     <aside
       className="game-quests"
@@ -44,10 +53,10 @@ export default function QuestPanel({ game }: { game: GameState }) {
       />
       <div id={panelId} className="quest-details">
         <ul>
-          <li data-done={game.delivered.length === 3}>
+          <li data-done={suppliesCount === 3}>
             <span className="quest-icon">
               <Icon
-                name={game.delivered.length === 3 ? "check" : "box"}
+                name={suppliesCount === 3 ? "check" : "box"}
                 className="h-4 w-4"
               />
             </span>
@@ -55,42 +64,42 @@ export default function QuestPanel({ game }: { game: GameState }) {
               <strong>Припасы в дом</strong>
               <small>Еда, вода, одеяла</small>
             </div>
-            <b>{game.delivered.length}/3</b>
+            <b>{suppliesCount}/3</b>
           </li>
-          <li data-done={game.bridge}>
+          <li data-done={bridge}>
             <span className="quest-icon">
               <Icon
-                name={game.bridge ? "check" : "bridge"}
+                name={bridge ? "check" : "bridge"}
                 className="h-4 w-4"
               />
             </span>
             <div>
               <strong>Крепкий мост</strong>
               <small>
-                {game.bridge ? "Переправа готова" : "Принесите доски"}
+                {bridge ? "Переправа готова" : "Принесите доски"}
               </small>
             </div>
           </li>
-          <li data-done={!!game.power}>
+          <li data-done={!!power}>
             <span className="quest-icon">
-              <Icon name={game.power ? "check" : "bolt"} className="h-4 w-4" />
+              <Icon name={power ? "check" : "bolt"} className="h-4 w-4" />
             </span>
             <div>
               <strong>Свет для соседей</strong>
               <small>
-                {game.power === "shelter"
+                {power === "shelter"
                   ? "Свет в общем доме"
-                  : game.power === "shop"
+                  : power === "shop"
                     ? "Свет в магазине"
                     : "Отнесите аккумулятор к зданию"}
               </small>
             </div>
           </li>
         </ul>
-        <div className="quest-personal" data-done={outcome.personalComplete}>
+        <div className="quest-personal" data-done={personalComplete}>
           <span>
             <Icon name="heart" className="h-3 w-3" />{" "}
-            {outcome.personalComplete
+            {personalComplete
               ? "Личная цель выполнена"
               : "Ваша личная цель"}
           </span>
@@ -100,4 +109,6 @@ export default function QuestPanel({ game }: { game: GameState }) {
       </div>
     </aside>
   );
-}
+});
+
+export default QuestPanel;
