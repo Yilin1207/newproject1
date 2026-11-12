@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, type MutableRefObject } from "react";
+import { memo, Suspense, useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Sky } from "@react-three/drei";
 import { Physics, RigidBody, CapsuleCollider, CuboidCollider, type RapierRigidBody } from "@react-three/rapier";
@@ -10,7 +10,7 @@ import World from "./World";
 import Character from "./Character";
 import ItemVisual from "./ItemVisual";
 import WorldLabel from "./WorldLabel";
-import { COLLIDERS, LOCATIONS, SPAWN, WORLD_BOUNDS, type GameState, type Vec3, type GameItem } from "./model";
+import { COLLIDERS, LOCATIONS, SPAWN, WORLD_BOUNDS, type CharacterId, type GamePhase, type GameState, type ItemKind, type Vec3, type GameItem } from "./model";
 
 export type Controls = {
   keys: Set<string>; yaw: number; pitch: number; zoom: number; jump: boolean;
@@ -38,17 +38,30 @@ function Ready({ onReady }: { onReady: () => void }) {
   return null;
 }
 
-function Player({ game, controls, active, onPosition }: Pick<EngineProps, "game" | "controls" | "active" | "onPosition">) {
+type PlayerProps = Pick<EngineProps, "controls" | "active" | "onPosition"> & {
+  character: CharacterId;
+  heldKind?: ItemKind;
+  finished: boolean;
+};
+
+const Player = memo(function Player({ character, heldKind, finished, controls, active, onPosition }: PlayerProps) {
   const body = useRef<RapierRigidBody>(null);
   const inputRef = useRef(controls.current);
   const visual = useRef<THREE.Group>(null);
   const { camera } = useThree();
   const target = useMemo(() => new THREE.Vector3(), []);
   const desired = useMemo(() => new THREE.Vector3(), []);
+  const cameraCollision = useMemo(() => ({
+    ray: new THREE.Ray(),
+    hit: new THREE.Vector3(),
+    boxes: COLLIDERS.map(({ position: [x, y, z], halfExtents: [hx, hy, hz] }) => new THREE.Box3(
+      new THREE.Vector3(x - hx - 0.25, y - hy, z - hz - 0.25),
+      new THREE.Vector3(x + hx + 0.25, y + hy + 2, z + hz + 0.25),
+    )),
+  }), []);
   const lastUpdate = useRef(0);
+  const lastPosition = useRef<Vec3 | null>(null);
   const initialized = useRef(false);
-  const motion = useRef({ moving: false, running: false });
-  const held = game.items.find(item => item.id === game.carried);
 
   useFrame((_, rawDt) => {
     if (!body.current) return;
@@ -57,13 +70,13 @@ function Player({ game, controls, active, onPosition }: Pick<EngineProps, "game"
     const p = body.current.translation();
     const velocity = body.current.linvel();
     let forward = 0, side = 0;
-    if (active && game.phase !== "finished") {
+    if (active && !finished) {
       forward = Number(input.keys.has("KeyW") || input.keys.has("ArrowUp")) - Number(input.keys.has("KeyS") || input.keys.has("ArrowDown"));
       side = Number(input.keys.has("KeyD") || input.keys.has("ArrowRight")) - Number(input.keys.has("KeyA") || input.keys.has("ArrowLeft"));
     }
     const running = input.keys.has("ShiftLeft") || input.keys.has("ShiftRight");
     const length = Math.hypot(forward, side) || 1;
-    const speed = (running ? 6.1 : 3.65) * (held ? 0.83 : 1);
+    const speed = (running ? 6.1 : 3.65) * (heldKind ? 0.83 : 1);
     const x = (-Math.sin(input.yaw) * forward + Math.cos(input.yaw) * side) / length * speed;
     const z = (-Math.cos(input.yaw) * forward - Math.sin(input.yaw) * side) / length * speed;
     const moving = Math.abs(x) + Math.abs(z) > 0.01;
@@ -75,9 +88,11 @@ function Player({ game, controls, active, onPosition }: Pick<EngineProps, "game"
       body.current.setTranslation({ x: SPAWN[0], y: 1, z: SPAWN[2] }, true);
       body.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
     }
-    input.position = { x: p.x, y: p.y - 0.75, z: p.z };
+    // Keep published positions immutable, and avoid waking React while stationary.
+    if (input.position.x !== p.x || input.position.y !== p.y - 0.75 || input.position.z !== p.z) {
+      input.position = { x: p.x, y: p.y - 0.75, z: p.z };
+    }
     input.moving = moving; input.running = running;
-    motion.current = { moving, running };
     if (moving && visual.current) {
       const angle = Math.atan2(x, z);
       let delta = angle - visual.current.rotation.y;
@@ -89,32 +104,38 @@ function Player({ game, controls, active, onPosition }: Pick<EngineProps, "game"
     const distance = input.zoom;
     desired.set(p.x + Math.sin(input.yaw) * distance, p.y + input.pitch * distance, p.z + Math.cos(input.yaw) * distance);
     // Pull the camera in before a facade can get between it and the player.
-    const ray = new THREE.Ray(target, desired.clone().sub(target).normalize());
+    const { ray, hit, boxes } = cameraCollision;
+    ray.origin.copy(target);
+    ray.direction.copy(desired).sub(target).normalize();
     let cameraDistance = target.distanceTo(desired);
-    for (const box of COLLIDERS) {
-      const [bx, by, bz] = box.position, [hx, hy, hz] = box.halfExtents;
-      const hit = ray.intersectBox(new THREE.Box3(new THREE.Vector3(bx-hx-.25,by-hy,bz-hz-.25),new THREE.Vector3(bx+hx+.25,by+hy+2,bz+hz+.25)), new THREE.Vector3());
-      if (hit) cameraDistance = Math.min(cameraDistance, Math.max(1.5, target.distanceTo(hit)-0.5));
+    for (const box of boxes) {
+      if (ray.intersectBox(box, hit)) cameraDistance = Math.min(cameraDistance, Math.max(1.5, target.distanceTo(hit)-0.5));
     }
     desired.copy(target).addScaledVector(ray.direction, cameraDistance);
     camera.position.lerp(desired, initialized.current ? 1 - Math.exp(-dt * 7) : 1);
     camera.lookAt(target);
     initialized.current = true;
     lastUpdate.current += dt;
-    if (lastUpdate.current > 0.1) { onPosition(input.position); lastUpdate.current = 0; }
+    if (lastUpdate.current > 0.1) {
+      if (lastPosition.current !== input.position) {
+        lastPosition.current = input.position;
+        onPosition(input.position);
+      }
+      lastUpdate.current = 0;
+    }
   });
 
-  const color = { mira: "#7ca98b", sasha: "#c98264", ren: "#9284ba", tim: "#c6a452" }[game.character];
+  const color = { mira: "#7ca98b", sasha: "#c98264", ren: "#9284ba", tim: "#c6a452" }[character];
   return <RigidBody ref={body} position={[SPAWN[0], 1, SPAWN[2]]} colliders={false} enabledRotations={[false,false,false]} linearDamping={0} friction={0} restitution={0} canSleep={false} ccd>
     <CapsuleCollider args={[0.4, 0.34]} />
     <group ref={visual} position={[0,-0.74,0]} rotation={[0,Math.PI-1.3,0]}>
-      <AnimatedCharacter controls={controls} color={color} carrying={!!held} />
-      {held && <group position={[0,0.92,0.62]} scale={0.8}><ItemVisual kind={held.kind} /></group>}
+      <AnimatedCharacter controls={controls} color={color} carrying={!!heldKind} />
+      {heldKind && <group position={[0,0.92,0.62]} scale={0.8}><ItemVisual kind={heldKind} /></group>}
     </group>
   </RigidBody>;
-}
+});
 
-function AnimatedCharacter({ controls, color, carrying }: { controls: MutableRefObject<Controls>; color: string; carrying: boolean }) {
+const AnimatedCharacter = memo(function AnimatedCharacter({ controls, color, carrying }: { controls: MutableRefObject<Controls>; color: string; carrying: boolean }) {
   // The art rig reads motion from a mutable group to avoid 60 React updates/second.
   const rig = useRef<THREE.Group>(null);
   useFrame(() => {
@@ -124,9 +145,9 @@ function AnimatedCharacter({ controls, color, carrying }: { controls: MutableRef
     }
   });
   return <group ref={rig}><Character color={color} moving={false} running={false} carrying={carrying} /></group>;
-}
+});
 
-function Pickup({ item, highlighted, reducedMotion, launchFrom }: { item: GameItem; highlighted: boolean; reducedMotion: boolean; launchFrom?: Vec3 }) {
+const Pickup = memo(function Pickup({ item, highlighted, reducedMotion, launchFrom }: { item: GameItem; highlighted: boolean; reducedMotion: boolean; launchFrom?: Vec3 }) {
   const group = useRef<THREE.Group>(null);
   const last = useRef(new THREE.Vector3(launchFrom?.x ?? item.position.x, launchFrom?.y ?? 0.08, launchFrom?.z ?? item.position.z));
   const flight = useRef(1);
@@ -146,14 +167,14 @@ function Pickup({ item, highlighted, reducedMotion, launchFrom }: { item: GameIt
     <mesh rotation={[-Math.PI/2,0,0]} position={[0,0.02,0]}><ringGeometry args={[0.5,0.57,36]} /><meshBasicMaterial color={highlighted ? "#fff0aa" : "#a4d2ae"} transparent opacity={0.65} /></mesh>
     <WorldLabel position={[0,1.35,0]} text={item.label} className={`game-item-label ${highlighted ? "near" : ""}`} />
   </group>;
-}
+});
 
-function Weather({ game, reducedMotion }: Pick<EngineProps,"game"|"reducedMotion">) {
+const Weather = memo(function Weather({ phase, storm, reducedMotion }: { phase: GamePhase; storm: number; reducedMotion: boolean }) {
   const light = useRef<THREE.DirectionalLight>(null);
   const ambient = useRef<THREE.HemisphereLight>(null);
   const rain = useRef<THREE.LineSegments>(null);
   const fog = useRef<THREE.Fog>(null);
-  const storm = game.phase !== "preparing" ? Math.min(1, game.stormElapsed / 3) : game.elapsed / 600 * 0.32;
+  const fogColors = useMemo(() => ({ clear: new THREE.Color("#adbfb0"), storm: new THREE.Color("#526578") }), []);
   const rainGeometry = useMemo(() => {
     const positions = new Float32Array(1100 * 6);
     for(let i=0;i<1100;i++) {
@@ -166,10 +187,10 @@ function Weather({ game, reducedMotion }: Pick<EngineProps,"game"|"reducedMotion
   },[]);
   useEffect(() => () => rainGeometry.dispose(), [rainGeometry]);
   useFrame(({clock},dt) => {
-    const flash = !reducedMotion && game.phase === "storm" && Math.sin(clock.elapsedTime*1.8)>0.995 ? 1.9 : 0;
+    const flash = !reducedMotion && phase === "storm" && Math.sin(clock.elapsedTime*1.8)>0.995 ? 1.9 : 0;
     if(light.current) { light.current.intensity = 3.0 * (1-storm*.86)+flash; light.current.color.set(storm>.5?"#c5c5ee":"#ffe8b8"); }
     if(ambient.current) ambient.current.intensity = 1.55 - storm * .8 + flash*.35;
-    if(fog.current) { fog.current.color.set("#adbfb0").lerp(new THREE.Color("#526578"),storm); fog.current.near=25-storm*12; fog.current.far=95-storm*25; }
+    if(fog.current) { fog.current.color.copy(fogColors.clear).lerp(fogColors.storm,storm); fog.current.near=25-storm*12; fog.current.far=95-storm*25; }
     if(rain.current && storm>.45) { rain.current.visible=true; rain.current.position.y -= dt*17; if(rain.current.position.y<-10)rain.current.position.y=0; }
     else if(rain.current)rain.current.visible=false;
   });
@@ -180,9 +201,9 @@ function Weather({ game, reducedMotion }: Pick<EngineProps,"game"|"reducedMotion
     <directionalLight ref={light} position={[25,29,-18]} intensity={3} color="#ffe3a3" castShadow shadow-mapSize={[2048,2048]} shadow-camera-left={-38} shadow-camera-right={38} shadow-camera-top={38} shadow-camera-bottom={-38} shadow-camera-near={1} shadow-camera-far={90} shadow-normalBias={0.035} shadow-bias={-0.0002} />
     <lineSegments ref={rain} geometry={rainGeometry} visible={false}><lineBasicMaterial color="#b6d8ea" transparent opacity={0.45} depthWrite={false} /></lineSegments>
   </>;
-}
+});
 
-function Collisions() {
+const Collisions = memo(function Collisions() {
   return <RigidBody type="fixed" colliders={false}>
     <CuboidCollider args={[30,.2,20.75]} position={[0,-.2,-9.25]} />
     <CuboidCollider args={[30,.2,5.75]} position={[0,-.2,22.25]} />
@@ -196,19 +217,21 @@ function Collisions() {
     <CuboidCollider args={[1.1,1,1.1]} position={[-15,1,8]} />
     <CuboidCollider args={[1.4,1,1.4]} position={[0,1,0]} />
   </RigidBody>;
-}
+});
 
-export default function Engine(props: EngineProps) {
+const Engine = memo(function Engine(props: EngineProps) {
   const {game,controls,active,quality,reducedMotion,onReady,onError,onPosition,playerPosition,throwOrigin}=props;
   const storm=game.phase==="preparing" ? 0 : Math.min(1,game.stormElapsed/3);
+  const weatherStorm=game.phase==="preparing" ? game.elapsed/600*0.32 : storm;
+  const heldKind=game.items.find(item=>item.id===game.carried)?.kind;
   return <Canvas shadows={quality==="high" ? "percentage" : false} dpr={quality==="high"?[1,1.6]:[1,1]} camera={{fov:48,near:.1,far:160,position:[-20,8,5]}} gl={{antialias:true,powerPreference:"high-performance"}} fallback={<p>Для игры нужен браузер с поддержкой WebGL 2.</p>}>
     <RendererHealth onError={onError}/>
     <Suspense fallback={null}>
-      <Weather game={game} reducedMotion={reducedMotion} />
+      <Weather phase={game.phase} storm={weatherStorm} reducedMotion={reducedMotion} />
       <World power={game.power} bridge={game.bridge} storm={storm} reducedMotion={reducedMotion} />
       <Physics gravity={[0,-17,0]} timeStep={1/60} paused={!active}>
         <Collisions />
-        <Player game={game} controls={controls} active={active} onPosition={onPosition} />
+        <Player character={game.character} heldKind={heldKind} finished={game.phase==="finished"} controls={controls} active={active} onPosition={onPosition} />
       </Physics>
       {game.items.filter(i=>i.status==="ground").map(item=><Pickup key={item.id} item={item} highlighted={Math.hypot(item.position.x-playerPosition.x,item.position.z-playerPosition.z)<3} reducedMotion={reducedMotion} launchFrom={throwOrigin?.id===item.id ? throwOrigin.position : undefined} />)}
       {game.items.filter(i=>i.status==="delivered").map((item,index)=><group key={item.id} position={[-15.3+index*.9,.08,-5.3]} scale={.8}><ItemVisual kind={item.kind}/></group>)}
@@ -218,4 +241,6 @@ export default function Engine(props: EngineProps) {
       <Ready onReady={onReady} />
     </Suspense>
   </Canvas>;
-}
+});
+
+export default Engine;

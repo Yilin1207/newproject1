@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CharacterSelect from "@/components/CharacterSelect";
 import Neighborhood from "@/components/Neighborhood";
 import { Avatar, Icon, Notice, SectionTitle } from "@/components/ui";
@@ -15,8 +15,10 @@ import {
   leaveRoom,
   selectCharacter,
   useDemo,
+  useDemoReady,
 } from "@/lib/demo-store";
 import { getOutcome, type GameState } from "@/game/model";
+import "./lobby.css";
 
 const DistrictGame = dynamic(() => import("@/game/Game"), {
   ssr: false,
@@ -34,6 +36,7 @@ const DistrictGame = dynamic(() => import("@/game/Game"), {
 
 export default function LobbyPage() {
   const demo = useDemo();
+  const ready = useDemoReady();
   const room = demo.room;
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -41,6 +44,11 @@ export default function LobbyPage() {
   const [notice, setNotice] = useState("");
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [gameOpen, setGameOpen] = useState(false);
+  const leaveButton = useRef<HTMLButtonElement>(null);
+  const cancelLeaveButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (confirmLeave) cancelLeaveButton.current?.focus();
+  }, [confirmLeave]);
   const current = characters.find((c) => c.id === demo.character)!;
   async function copyCode() {
     if (!room) return;
@@ -59,7 +67,7 @@ export default function LobbyPage() {
       Number(room.power === "shelter")
     : 0;
   return (
-    <>
+    <div className="lobby-page">
       {room && (gameOpen || room.phase === "preparing") && (
         <DistrictGame
           character={demo.character}
@@ -96,6 +104,7 @@ export default function LobbyPage() {
           }}
         />
       )}
+      <div className="lobby-heading">
       <SectionTitle
         label="Перед грозой"
         title={
@@ -108,6 +117,8 @@ export default function LobbyPage() {
       >
         Выберите героя. Остальное — в ваших руках.
       </SectionTitle>
+      <span className="lobby-local-badge"><span /> Локальная игра</span>
+      </div>
       <ol className="lobby-steps" aria-label="Подготовка к игре">
         {["Комната", "Ваш герой", "Начало истории"].map((label, index) => {
           const currentStep = !room ? 0 : room.phase === "lobby" ? 1 : 2;
@@ -130,35 +141,46 @@ export default function LobbyPage() {
         })}
       </ol>
       {!room ? (
-        <div className="grid items-start gap-6 lg:grid-cols-[1.15fr_1fr]">
-          <section className="card overflow-hidden">
-            <div className="h-64 overflow-hidden">
+        <div className="lobby-entry-grid">
+          <section className="card lobby-scenario">
+            <div className="lobby-scenario-art">
               <Neighborhood compact />
+              <span className="lobby-story-number">История 01</span>
+              <span className="lobby-story-weather"><Icon name="cloud" className="h-4 w-4" /> Скоро гроза</span>
             </div>
-            <div className="p-6 md:p-8">
-              <span className="eyebrow">История 01 · 10 минут</span>
-              <h2 className="mt-3 text-2xl font-semibold tracking-tight">
-                Район ждёт вас
+            <div className="lobby-scenario-copy">
+              <span className="eyebrow">Маленькая история о большой помощи</span>
+              <h2>
+                Перед грозой
               </h2>
-              <p className="mt-3 text-sm leading-6 text-muted">
-                Выберите героя и успейте подготовиться к грозе.
+              <p className="lobby-scenario-description">
+                Над районом собираются тучи. Помогите соседям собрать припасы,
+                укрепить мост и зажечь свет до первого грома.
               </p>
+              <div className="lobby-scenario-facts">
+                <span><Icon name="clock" className="h-4 w-4" /> 10 минут</span>
+                <span><Icon name="people" className="h-4 w-4" /> Одиночная игра</span>
+              </div>
               <button
+                type="button"
+                disabled={!ready}
                 onClick={() => {
                   createRoom();
-                  setNotice("");
+                  setNotice(hasStorageError()
+                    ? "Комната создана, но браузер запретил сохранение. Прогресс доступен только в этой вкладке."
+                    : "");
                 }}
-                className="button-primary mt-6 w-full"
+                className="button-primary lobby-create-button"
               >
                 Создать комнату <Icon name="arrow" />
               </button>
-              <p className="mt-3 text-center text-xs text-muted">
-                Без регистрации · Прогресс в этом браузере
+              <p className="lobby-entry-help">
+                {ready ? "Без регистрации · Прогресс в этом браузере" : "Загружаем игру…"}
               </p>
             </div>
           </section>
-          <section className="card p-6 md:p-8">
-            <span className="inline-flex rounded-xl bg-[#e9eddf] p-3 text-forest">
+          <section className="card lobby-join">
+            <span className="lobby-join-icon">
               <Icon name="people" />
             </span>
             <h2 className="mt-5 text-xl font-semibold">Войти по коду</h2>
@@ -168,7 +190,7 @@ export default function LobbyPage() {
             </p>
             <p
               id="join-help"
-              className="mt-5 border-t border-line pt-5 text-xs leading-6 text-muted"
+              className="lobby-local-note"
             >
               Сейчас игра работает локально. Подключение друзей появится позже.
             </p>
@@ -176,7 +198,7 @@ export default function LobbyPage() {
         </div>
       ) : (
         <>
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-paper p-4">
+          <div className="lobby-room-bar">
             <div className="flex items-center gap-3">
               <span className="rounded-lg bg-[#edf0e5] p-2.5 text-forest">
                 <Icon name="people" />
@@ -198,17 +220,21 @@ export default function LobbyPage() {
               </button>
             </div>
             <button
+              ref={leaveButton}
               onClick={() => setConfirmLeave(true)}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted hover:bg-[#f4e9df]"
+              aria-expanded={confirmLeave}
+              aria-controls="leave-confirmation"
+              className="lobby-leave-button"
             >
               <Icon name="exit" className="h-4 w-4" />
               Выйти из комнаты
             </button>
           </div>
           {confirmLeave && (
-            <div className="mb-5 rounded-xl border border-[#dfc9ad] bg-[#f8efdd] p-4">
-              <p className="text-sm">
-                Выйти из комнаты? Незавершённая подготовка будет сброшена.
+            <div id="leave-confirmation" className="lobby-leave-confirmation" role="region" aria-labelledby="leave-title">
+              <p id="leave-title" className="font-semibold">Покинуть эту историю?</p>
+              <p className="mt-1 text-sm">
+                Незавершённая подготовка будет сброшена.
               </p>
               <div className="mt-3 flex gap-3">
                 <button
@@ -222,7 +248,11 @@ export default function LobbyPage() {
                   Да, выйти
                 </button>
                 <button
-                  onClick={() => setConfirmLeave(false)}
+                  ref={cancelLeaveButton}
+                  onClick={() => {
+                    setConfirmLeave(false);
+                    leaveButton.current?.focus();
+                  }}
                   className="button-primary"
                 >
                   Остаться
@@ -236,7 +266,7 @@ export default function LobbyPage() {
             </div>
           )}
           {room.phase === "lobby" && (
-            <div className="grid items-start gap-6 xl:grid-cols-[1.5fr_1fr]">
+            <div className="lobby-preparation-grid">
               <CharacterSelect
                 value={demo.character}
                 onChange={(id) => {
@@ -245,13 +275,13 @@ export default function LobbyPage() {
                 }}
               />
               <div className="space-y-5">
-                <section className="card team-card p-6">
+                <section className="card team-card lobby-team p-6">
                   <h2 className="text-lg font-semibold">Участник игры</h2>
                   <p className="mt-2 text-xs text-muted">Одиночная игра · 1 игрок</p>
                   <div className="mt-5 space-y-4">
-                    <div className="flex items-center gap-3">
+                    <div className="lobby-team-member">
                       <Avatar character={current.id} />
-                      <div className="flex-1">
+                      <div className="lobby-member-copy">
                         <p className="text-sm font-semibold">
                           {demo.name}{" "}
                           <span className="text-xs font-normal text-muted">
@@ -263,8 +293,10 @@ export default function LobbyPage() {
                         </p>
                       </div>
                       <span
-                        className={`text-xs ${room.ready ? "text-forest" : "text-muted"}`}
+                        className="lobby-ready-status"
+                        data-ready={room.ready}
                       >
+                        <span />
                         {room.ready ? "Готов" : "Выбирает"}
                       </span>
                     </div>
@@ -296,7 +328,7 @@ export default function LobbyPage() {
                     </p>
                   </div>
                 </section>
-                <div className="rounded-2xl bg-[#eee9dc] p-5">
+                <div className="lobby-scenario-reminder">
                   <p className="flex items-center gap-2 text-sm font-semibold">
                     <Icon name="cloud" />
                     Сценарий «Перед грозой»
@@ -390,6 +422,6 @@ export default function LobbyPage() {
           )}
         </>
       )}
-    </>
+    </div>
   );
 }

@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "test:game": "tsx --test tests/game-model.test.mjs",
-    "test:store": "tsx --test tests/player-store.test.mjs tests/player-stats.test.mjs"
+    "test:store": "tsx --test tests/player-store.test.mjs tests/player-stats.test.mjs",
+    "test:render": "tsx --test tests/static-batch.test.mjs",
+    "test:browser": "playwright test"
   },
   "engines": {
     "node": ">=20.9.0"
@@ -26,6 +28,7 @@
     "three": "^0.187.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",

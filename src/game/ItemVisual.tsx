@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 
 export type ItemKind = "food" | "water" | "blankets" | "planks" | "battery";
 
@@ -9,7 +9,7 @@ function Block({ position, size, color, children }: { position: [number, number,
 }
 
 /** Original, locally authored props. The base of every prop is at y=0. */
-export default function ItemVisual({ kind, highlighted = false }: { kind: ItemKind; highlighted?: boolean }) {
+const ItemVisual = memo(function ItemVisual({ kind, highlighted = false }: { kind: ItemKind; highlighted?: boolean }) {
   return <group>
     {highlighted && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]}><ringGeometry args={[0.48, 0.53, 36]} /><meshBasicMaterial color="#f4d98c" transparent opacity={0.8} /></mesh>}
     {kind === "food" && <group>
@@ -42,4 +42,6 @@ export default function ItemVisual({ kind, highlighted = false }: { kind: ItemKi
       <Block position={[0, 0.66, 0]} size={[0.29, 0.045, 0.045]} color="#2c4145" />
     </group>}
   </group>;
-}
+});
+
+export default ItemVisual;

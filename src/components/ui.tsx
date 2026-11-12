@@ -147,7 +147,7 @@ export function SectionTitle({
   children?: ReactNode;
 }) {
   return (
-    <div className="mb-8">
+    <div className="page-heading">
       <p className="eyebrow">{label}</p>
       <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-[40px]">
         {title}

@@ -2,6 +2,7 @@
 
 import {
   Component,
+  memo,
   useCallback,
   useEffect,
   useRef,
@@ -90,7 +91,12 @@ class SceneBoundary extends Component<
   }
 }
 
-function MiniMap({ position, game }: { position: Vec3; game: GameState }) {
+const MiniMap = memo(function MiniMap({
+  position,
+  items,
+  power,
+  bridge,
+}: Pick<GameState, "items" | "power" | "bridge"> & { position: Vec3 }) {
   return (
     <div className="game-map" aria-label="Карта района">
       <svg
@@ -113,7 +119,7 @@ function MiniMap({ position, game }: { position: Vec3; game: GameState }) {
           width="8"
           height="7"
           rx="1"
-          fill={game.power === "shelter" ? "#e4c475" : "#bcb794"}
+          fill={power === "shelter" ? "#e4c475" : "#bcb794"}
         />
         <rect
           x="8"
@@ -121,17 +127,17 @@ function MiniMap({ position, game }: { position: Vec3; game: GameState }) {
           width="8"
           height="7"
           rx="1"
-          fill={game.power === "shop" ? "#e4c475" : "#bcb794"}
+          fill={power === "shop" ? "#e4c475" : "#bcb794"}
         />
         <rect
           x="14.5"
           y="10.5"
           width="3"
           height="7"
-          fill={game.bridge ? "#b5cb9a" : "#a18c65"}
+          fill={bridge ? "#b5cb9a" : "#a18c65"}
         />
         <circle cx="-15" cy="8" r="1.5" fill="#9ca889" />
-        {game.items
+        {items
           .filter((i) => i.status === "ground")
           .map((i) => (
             <circle
@@ -169,7 +175,7 @@ function MiniMap({ position, game }: { position: Vec3; game: GameState }) {
       </span>
     </div>
   );
-}
+});
 
 export default function Game(props: Props) {
   const [game, setGame] = useState(() => createGame(props.character));
@@ -518,8 +524,19 @@ export default function Game(props: Props) {
           </header>
           {started && game.phase !== "finished" && (
             <>
-              <QuestPanel game={game} />
-              <MiniMap position={position} game={game} />
+              <QuestPanel
+                character={game.character}
+                suppliesCount={game.delivered.length}
+                bridge={game.bridge}
+                power={game.power}
+                personalComplete={outcome.personalComplete}
+              />
+              <MiniMap
+                position={position}
+                items={game.items}
+                power={game.power}
+                bridge={game.bridge}
+              />
               <div className="game-event" role="status" aria-live="polite">
                 {game.lastMessage}
               </div>
