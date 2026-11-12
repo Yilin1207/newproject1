@@ -1,7 +1,11 @@
 import type { Result } from "@/lib/demo-store";
 import { Icon, type IconName } from "./ui";
 
-export default function Achievements({ history }: { history: Result[] }) {
+export default function Achievements({
+  history,
+}: {
+  history: Result[];
+}) {
   const achievements: {
     title: string;
     detail: string;
@@ -41,7 +45,9 @@ export default function Achievements({ history }: { history: Result[] }) {
       aria-labelledby="achievements-title"
     >
       <div className="achievements-heading">
-        <h2 id="achievements-title">Маленькие победы</h2>
+        <h2 id="achievements-title">
+          Маленькие победы
+        </h2>
         <span>{achievements.filter((item) => item.unlocked).length} из 4</span>
       </div>
       <div className="achievements-grid">

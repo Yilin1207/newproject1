@@ -49,6 +49,10 @@ export type Result = {
   score: number;
   power: Power;
   personalComplete?: boolean;
+  character?: CharacterId;
+  durationSeconds?: number;
+  suppliesCount?: number;
+  bridge?: boolean;
 };
 export type DemoState = {
   name: string;
@@ -106,6 +110,8 @@ function parse(raw: string | null): DemoState {
             .filter(
               (r: Result) =>
                 r &&
+                typeof r === "object" &&
+                !("demo" in r && r.demo === true) &&
                 typeof r.id === "string" &&
                 typeof r.title === "string" &&
                 typeof r.date === "string" &&
@@ -116,6 +122,30 @@ function parse(raw: string | null): DemoState {
                 isPower(r.power),
             )
             .slice(0, 30)
+            .map((r: Result) => ({
+              id: r.id,
+              date: r.date,
+              title: r.title,
+              score: r.score,
+              power: r.power,
+              ...(typeof r.suppliesCount === "number" &&
+              Number.isInteger(r.suppliesCount) &&
+              r.suppliesCount >= 0 && r.suppliesCount <= 3
+                ? { suppliesCount: r.suppliesCount }
+                : {}),
+              ...(typeof r.bridge === "boolean" ? { bridge: r.bridge } : {}),
+              ...(typeof r.personalComplete === "boolean"
+                ? { personalComplete: r.personalComplete }
+                : {}),
+              ...(characters.some((c) => c.id === r.character)
+                ? { character: r.character }
+                : {}),
+              ...(typeof r.durationSeconds === "number" &&
+              Number.isInteger(r.durationSeconds) &&
+              r.durationSeconds >= 0
+                ? { durationSeconds: r.durationSeconds }
+                : {}),
+            }))
         : [],
     };
   } catch {
@@ -172,12 +202,15 @@ export function saveProfile(
     "name" | "character" | "notifications" | "reducedMotion"
   >,
 ) {
+  initialize();
   update({ ...state, ...values });
 }
 export function selectCharacter(character: CharacterId) {
+  initialize();
   update({ ...state, character });
 }
-export function createRoom(code?: string) {
+export function createRoom() {
+  initialize();
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const generated = Array.from(
     crypto.getRandomValues(new Uint8Array(6)),
@@ -186,7 +219,7 @@ export function createRoom(code?: string) {
   update({
     ...state,
     room: {
-      code: code || generated,
+      code: generated,
       ready: false,
       phase: "lobby",
       supplies: false,
@@ -196,12 +229,21 @@ export function createRoom(code?: string) {
   });
 }
 export function changeRoom(values: Partial<DemoRoom>) {
+  initialize();
   if (state.room) update({ ...state, room: { ...state.room, ...values } });
 }
 export function leaveRoom() {
+  initialize();
   update({ ...state, room: null });
 }
-export function finishDemo(details?: { title: string; personalComplete: boolean }) {
+export function finishDemo(details: {
+  title: string;
+  personalComplete: boolean;
+  character: CharacterId;
+  durationSeconds: number;
+  suppliesCount: number;
+}) {
+  initialize();
   if (!state.room || state.room.phase !== "preparing") return;
   const score =
     Number(state.room.supplies) +
@@ -212,13 +254,12 @@ export function finishDemo(details?: { title: string; personalComplete: boolean 
     date: new Date().toISOString(),
     score,
     power: state.room.power,
-    ...(details ? { personalComplete: details.personalComplete } : {}),
-    title: details?.title ?? (
-      score === 3
-        ? "Район готов к грозе"
-        : score >= 1
-          ? "Вместе справимся"
-          : "Гроза застала врасплох"),
+    personalComplete: details.personalComplete,
+    character: details.character,
+    durationSeconds: details.durationSeconds,
+    suppliesCount: details.suppliesCount,
+    bridge: state.room.bridge,
+    title: details.title,
   };
   update({
     ...state,
@@ -227,5 +268,6 @@ export function finishDemo(details?: { title: string; personalComplete: boolean 
   });
 }
 export function clearHistory() {
+  initialize();
   update({ ...state, history: [] });
 }

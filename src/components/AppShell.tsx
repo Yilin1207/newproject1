@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { characters, useDemo } from "@/lib/demo-store";
 import { Avatar, Icon, type IconName } from "./ui";
+import FriendsPanel from "./FriendsPanel";
 
 const navigation: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "Главная", icon: "home" },
@@ -53,16 +54,26 @@ export default function AppShell({ children }: { children: ReactNode }) {
               </Link>
             ))}
           </nav>
-          <Link
-            href="/profile"
-            className="header-profile"
-            aria-label={`Профиль: ${demo.name}`}
-          >
-            <span>{demo.name}</span>
-            <span className="[&_svg]:h-9 [&_svg]:w-9">
-              <Avatar character={character.id} />
-            </span>
-          </Link>
+          <div className="header-actions">
+            <details className="friends-menu" key={pathname}>
+              <summary aria-label="Друзья — сетевая игра недоступна">
+                <Icon name="people" className="h-5 w-5" />
+              </summary>
+              <div className="friends-dropdown">
+                <FriendsPanel />
+              </div>
+            </details>
+            <Link
+              href="/profile"
+              className="header-profile"
+              aria-label={`Профиль: ${demo.name}`}
+            >
+              <span>{demo.name}</span>
+              <span className="[&_svg]:h-9 [&_svg]:w-9">
+                <Avatar character={character.id} />
+              </span>
+            </Link>
+          </div>
         </div>
       </header>
       <main id="main" className="site-main">
@@ -74,7 +85,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </span>
         <div>
           <span className="local-label">
-            <span /> Локальное демо
+            <span /> Локальная игра
           </span>
           <button onClick={() => setRulesOpen(true)}>
             Как играть <span aria-hidden="true">↗</span>

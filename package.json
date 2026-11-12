@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:game": "tsx --test tests/game-model.test.mjs"
+    "test:game": "tsx --test tests/game-model.test.mjs",
+    "test:store": "tsx --test tests/player-store.test.mjs tests/player-stats.test.mjs"
   },
   "engines": {
     "node": ">=20.9.0"

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import CharacterSelect from "@/components/CharacterSelect";
 import Neighborhood from "@/components/Neighborhood";
 import { Avatar, Icon, Notice, SectionTitle } from "@/components/ui";
@@ -38,21 +38,10 @@ export default function LobbyPage() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [room?.code, room?.phase]);
-  const [code, setCode] = useState("");
-  const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [gameOpen, setGameOpen] = useState(false);
   const current = characters.find((c) => c.id === demo.character)!;
-  function join(event: FormEvent) {
-    event.preventDefault();
-    if (code.trim().toUpperCase() !== "DEMO26") {
-      setError("Комната не найдена. Попробуйте DEMO26.");
-      return;
-    }
-    setError("");
-    createRoom("DEMO26");
-  }
   async function copyCode() {
     if (!room) return;
     try {
@@ -99,6 +88,9 @@ export default function LobbyPage() {
             finishDemo({
               title: outcome.title,
               personalComplete: outcome.personalComplete,
+              character: game.character,
+              durationSeconds: Math.round(game.elapsed + game.stormElapsed),
+              suppliesCount: outcome.suppliesCount,
             });
             return !hasStorageError();
           }}
@@ -171,54 +163,9 @@ export default function LobbyPage() {
             </span>
             <h2 className="mt-5 text-xl font-semibold">Войти по коду</h2>
             <p className="mt-3 text-sm leading-6 text-muted">
-              Попробуйте демо-комнату:{" "}
-              <button
-                onClick={() => {
-                  setCode("DEMO26");
-                  setError("");
-                }}
-                className="font-semibold text-forest underline underline-offset-4"
-              >
-                DEMO26
-              </button>
+              Подключение к другим игрокам пока недоступно.
+              Создайте локальную комнату, чтобы начать свою историю.
             </p>
-            <form onSubmit={join} className="mt-6">
-              <label
-                htmlFor="room-code"
-                className="mb-2 block text-xs font-medium"
-              >
-                Код комнаты
-              </label>
-              <input
-                id="room-code"
-                value={code}
-                onChange={(e) => {
-                  setCode(e.target.value.toUpperCase());
-                  setError("");
-                }}
-                placeholder="DEMO26"
-                maxLength={6}
-                required
-                minLength={6}
-                autoComplete="off"
-                spellCheck={false}
-                aria-invalid={!!error}
-                aria-describedby={error ? "join-error join-help" : "join-help"}
-                className="field font-mono tracking-[.15em] uppercase"
-              />
-              {error && (
-                <p
-                  id="join-error"
-                  role="alert"
-                  className="mt-3 text-sm text-[#a44f3d]"
-                >
-                  {error}
-                </p>
-              )}
-              <button className="button-secondary mt-4 w-full" type="submit">
-                Войти <Icon name="arrow" />
-              </button>
-            </form>
             <p
               id="join-help"
               className="mt-5 border-t border-line pt-5 text-xs leading-6 text-muted"
@@ -236,7 +183,7 @@ export default function LobbyPage() {
               </span>
               <div>
                 <p className="text-[10px] tracking-widest text-muted uppercase">
-                  Демо-комната
+                  Локальная комната
                 </p>
                 <p className="mt-1 font-mono text-lg font-semibold tracking-[.18em]">
                   {room.code}
@@ -299,10 +246,8 @@ export default function LobbyPage() {
               />
               <div className="space-y-5">
                 <section className="card team-card p-6">
-                  <h2 className="text-lg font-semibold">Ваша команда</h2>
-                  <p className="mt-2 text-xs text-muted">
-                    Вы и два демо-персонажа
-                  </p>
+                  <h2 className="text-lg font-semibold">Участник игры</h2>
+                  <p className="mt-2 text-xs text-muted">Одиночная игра · 1 игрок</p>
                   <div className="mt-5 space-y-4">
                     <div className="flex items-center gap-3">
                       <Avatar character={current.id} />
@@ -323,23 +268,6 @@ export default function LobbyPage() {
                         {room.ready ? "Готов" : "Выбирает"}
                       </span>
                     </div>
-                    {[characters[1], characters[3]].map((c) => (
-                      <div key={c.id} className="flex items-center gap-3">
-                        <Avatar character={c.id} />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            {c.name}{" "}
-                            <span className="text-xs font-normal text-muted">
-                              · демо
-                            </span>
-                          </p>
-                          <p className="mt-1 text-xs text-muted">
-                            Демо-персонаж
-                          </p>
-                        </div>
-                        <Icon name="check" className="h-4 w-4 text-forest" />
-                      </div>
-                    ))}
                   </div>
                   <div className="mt-6 border-t border-line pt-5">
                     <button
