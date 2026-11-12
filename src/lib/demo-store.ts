@@ -182,6 +182,9 @@ export function useDemo() {
     () => initial,
   );
 }
+export function useDemoReady() {
+  return useSyncExternalStore(subscribe, () => initialized, () => false);
+}
 export function hasStorageError() {
   return storageError;
 }
