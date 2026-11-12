@@ -12,6 +12,7 @@ import {
   useDemo,
   type DemoState,
 } from "@/lib/demo-store";
+import "./profile.css";
 
 function ProfileForm({
   profile,
@@ -30,6 +31,7 @@ function ProfileForm({
     character !== profile.character ||
     notifications !== profile.notifications ||
     reducedMotion !== profile.reducedMotion;
+
   function submit(event: FormEvent) {
     event.preventDefault();
     if (name.trim().length < 2) {
@@ -44,48 +46,50 @@ function ProfileForm({
         : "Профиль сохранён.",
     );
   }
+
   return (
-    <form onSubmit={submit} className="card profile-form p-6 md:p-7">
-      <h2 className="text-lg font-semibold">Ваш персонаж</h2>
-      <p className="mt-2 text-sm text-muted">Имя, герой и настройки.</p>
-      <label
-        htmlFor="profile-name"
-        className="mt-6 mb-2 block text-xs font-medium"
-      >
-        Как вас называть?
-      </label>
-      <input
-        id="profile-name"
-        value={name}
-        onChange={(e) => {
-          setName(e.target.value);
-          onSaved("");
-          setError("");
-        }}
-        minLength={2}
-        maxLength={24}
-        required
-        className="field"
-        autoComplete="nickname"
-        aria-invalid={!!error}
-        aria-describedby={error ? "name-error" : "name-help"}
-      />
-      <p id="name-help" className="mt-2 text-xs text-muted">
-        От 2 до 24 символов.
-      </p>
-      {error && (
-        <p id="name-error" role="alert" className="mt-2 text-sm text-[#a44f3d]">
-          {error}
+    <form onSubmit={submit} className="profile-editor">
+      <div className="profile-editor-heading">
+        <div>
+          <p className="eyebrow">Всё по-вашему</p>
+          <h2>Настроить профиль</h2>
+        </div>
+        <Icon name="settings" className="h-5 w-5" />
+      </div>
+      <div className="profile-form-section">
+        <div className="profile-section-label">
+          <span aria-hidden="true">01</span>
+          <label htmlFor="profile-name">Как вас называть?</label>
+        </div>
+        <input
+          id="profile-name"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            onSaved("");
+            setError("");
+          }}
+          minLength={2}
+          maxLength={24}
+          required
+          className="field"
+          autoComplete="nickname"
+          aria-invalid={!!error}
+          aria-describedby={error ? "name-error" : "name-help"}
+        />
+        <p id="name-help" className="profile-field-hint">
+          От 2 до 24 символов. Имя для вашего профиля в районе.
         </p>
-      )}
-      <fieldset className="mt-7">
-        <legend className="text-xs font-medium">Любимый персонаж</legend>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {error && <p id="name-error" role="alert" className="profile-field-error">{error}</p>}
+      </div>
+      <fieldset className="profile-form-section">
+        <legend className="profile-section-label">
+          <span aria-hidden="true">02</span>
+          Любимый персонаж
+        </legend>
+        <div className="profile-character-grid">
           {characters.map((c) => (
-            <label
-              key={c.id}
-              className={`relative flex cursor-pointer flex-col items-center gap-2 rounded-xl border p-3 ${character === c.id ? "border-[#92aa81] bg-[#edf1e5]" : "border-line"}`}
-            >
+            <label key={c.id} className="profile-character-choice" data-selected={character === c.id}>
               <input
                 type="radio"
                 name="character"
@@ -95,25 +99,19 @@ function ProfileForm({
                   setCharacter(c.id);
                   onSaved("");
                 }}
-                className="absolute top-2 right-2 h-3 w-3 accent-[#42664e]"
               />
               <Avatar character={c.id} />
-              <span className="text-xs font-medium">{c.name}</span>
+              <span>{c.name}</span>
             </label>
           ))}
         </div>
       </fieldset>
-      <div className="mt-7 border-t border-line pt-6">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
-          <Icon name="settings" className="h-4 w-4" />
-          Настроить под себя
-        </h3>
-        <label className="mt-5 flex cursor-pointer items-center justify-between gap-4">
+      <div className="profile-form-section">
+        <h3 className="profile-section-label"><span aria-hidden="true">03</span>Ваш комфорт</h3>
+        <label className="profile-preference">
           <span>
-            <span className="block text-sm">Советы соседей</span>
-            <span className="mt-1 block text-xs text-muted">
-              Подсказки во время подготовки района
-            </span>
+            <strong>Советы соседей</strong>
+            <span>Подсказки во время подготовки района</span>
           </span>
           <input
             type="checkbox"
@@ -122,15 +120,13 @@ function ProfileForm({
               setNotifications(e.target.checked);
               onSaved("");
             }}
-            className="profile-switch"
+            className="profile-preference-switch"
           />
         </label>
-        <label className="mt-5 flex cursor-pointer items-center justify-between gap-4">
+        <label className="profile-preference">
           <span>
-            <span className="block text-sm">Меньше движения</span>
-            <span className="mt-1 block text-xs text-muted">
-              Отключить плавные переходы интерфейса
-            </span>
+            <strong>Меньше движения</strong>
+            <span>Отключить плавные переходы интерфейса</span>
           </span>
           <input
             type="checkbox"
@@ -139,15 +135,18 @@ function ProfileForm({
               setReducedMotion(e.target.checked);
               onSaved("");
             }}
-            className="profile-switch"
+            className="profile-preference-switch"
           />
         </label>
       </div>
-      <div className="profile-save-row">
+      <div className="profile-editor-footer">
+        <span role="status" className="profile-save-status" data-dirty={dirty}>
+          <span aria-hidden="true" />
+          {dirty ? "Есть несохранённые изменения" : "Всё сохранено"}
+        </span>
         <button type="submit" disabled={!dirty} className="button-primary">
           Сохранить <Icon name="check" />
         </button>
-        <span role="status">{dirty ? "Есть изменения" : "Всё сохранено"}</span>
       </div>
     </form>
   );
@@ -167,189 +166,116 @@ export default function ProfilePage() {
         ? result.personalComplete === true
         : true,
   );
+
   return (
-    <>
-      <SectionTitle label="Житель района" title="Мой профиль">
-        Ваш герой, настройки и результаты игр.
-      </SectionTitle>
-      <div className="grid items-start gap-6 xl:grid-cols-[.7fr_1.3fr]">
-        <aside className="card profile-passport p-7 text-center">
-          <div className="flex justify-center">
-            <Avatar character={character.id} size="large" />
+    <div className="profile-page">
+      <div className="profile-intro">
+        <SectionTitle label="Личное пространство" title="Мой профиль">
+          Здесь начинается ваша история в районе.
+        </SectionTitle>
+        <div className="profile-local-note">
+          <Icon name="user" className="h-4 w-4" />
+          <span>Ваш профиль на этом устройстве</span>
+        </div>
+      </div>
+      <div className="profile-overview">
+        <aside className="profile-resident-card">
+          <div className="profile-card-heading">
+            <span className="eyebrow">Карточка жителя</span>
+            <Icon name="home" className="h-4 w-4" />
           </div>
-          <h2 className="mt-5 text-2xl font-semibold">{demo.name}</h2>
-          <span className="mt-3 inline-block rounded-full bg-[#edf0e4] px-3 py-1.5 text-[10px] font-medium tracking-wide text-forest">
-            ЖИТЕЛЬ РАЙОНА
-          </span>
-          <p className="mt-5 text-sm leading-7 text-muted">
-            {character.name} · {character.role}
-            <br />
-            {character.description}
-          </p>
-          <div className="mt-7 grid grid-cols-2 divide-x divide-line border-y border-line py-5">
-            <div>
-              <p className="text-3xl font-semibold">{demo.history.length}</p>
-              <p className="mt-2 text-[10px] text-muted">Историй пройдено</p>
-            </div>
-            <div>
-              <p className="text-3xl font-semibold">{saved}</p>
-              <p className="mt-2 text-[10px] text-muted">Районов спасено</p>
-            </div>
+          <div className="profile-resident-identity">
+            <div className="profile-resident-portrait"><Avatar character={character.id} size="large" /></div>
+            <span className="profile-resident-tag">Свой человек</span>
+            <h2>{demo.name}</h2>
+            <p className="profile-resident-role">{character.name} · {character.role}</p>
+            <p className="profile-resident-description">{character.description}</p>
           </div>
-          <p className="mt-5 text-xs leading-6 text-muted">
-            Это локальный демо-профиль.
-            <br />
-            Данные хранятся только в этом браузере.
-          </p>
-          <Link href="/lobby" className="button-secondary mt-6 w-full">
+          <dl className="profile-resident-stats">
+            <div><dt>Историй пройдено</dt><dd>{demo.history.length}</dd></div>
+            <div><dt>Районов спасено</dt><dd>{saved}</dd></div>
+          </dl>
+          <Link href="/lobby" className="button-primary profile-return-link">
             Вернуться в район <Icon name="arrow" />
           </Link>
+          <p className="profile-storage-note">Локальный демо-профиль.<br />Данные хранятся только в этом браузере.</p>
         </aside>
-        <div>
+        <div className="profile-editor-column">
           <ProfileForm
-            key={JSON.stringify([
-              demo.name,
-              demo.character,
-              demo.notifications,
-              demo.reducedMotion,
-            ])}
+            key={JSON.stringify([demo.name, demo.character, demo.notifications, demo.reducedMotion])}
             profile={demo}
             onSaved={setSavedMessage}
           />
-          {savedMessage && (
-            <div className="mt-4">
-              <Notice>{savedMessage}</Notice>
-            </div>
-          )}
+          {savedMessage && <div className="profile-feedback"><Notice>{savedMessage}</Notice></div>}
         </div>
       </div>
       <Achievements history={demo.history} />
-      <section className="card mt-7 p-6 md:p-7">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <section className="profile-history" aria-labelledby="profile-history-title">
+        <div className="profile-history-heading">
           <div>
-            <h2 className="text-lg font-semibold">Ваши истории</h2>
-            <p className="mt-2 text-sm text-muted">
-              Каждый выбор оставляет след.
-            </p>
+            <p className="eyebrow">Дневник района</p>
+            <h2 id="profile-history-title">Ваши истории</h2>
+            <p>Маленькие решения, которые меняют многое.</p>
           </div>
           {demo.history.length > 0 && (
-            <button
-              onClick={() => setConfirmClear(true)}
-              className="rounded-lg px-3 py-2 text-xs text-muted hover:bg-[#f4e9df]"
-            >
-              Очистить историю
-            </button>
+            <button onClick={() => setConfirmClear(true)} className="profile-clear-button">Очистить историю</button>
           )}
         </div>
         {demo.history.length > 0 && (
-          <div className="history-filters" aria-label="Фильтр истории">
-            {(
-              [
-                { id: "all", label: "Все" },
-                { id: "best", label: "Район спасён" },
-                { id: "personal", label: "Личная цель" },
-              ] as const
-            ).map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                aria-pressed={filter === item.id}
-                onClick={() => setFilter(item.id)}
-              >
-                {item.label}
-              </button>
+          <div className="profile-history-filters" role="group" aria-label="Фильтр истории">
+            {([
+              { id: "all", label: "Все истории" },
+              { id: "best", label: "Район спасён" },
+              { id: "personal", label: "Личная цель" },
+            ] as const).map((item) => (
+              <button key={item.id} type="button" aria-pressed={filter === item.id} onClick={() => setFilter(item.id)}>{item.label}</button>
             ))}
           </div>
         )}
         {confirmClear && (
-          <div className="mt-5 rounded-xl bg-[#f4efdf] p-4">
-            <p className="text-sm">Удалить все результаты из этого браузера?</p>
-            <div className="mt-3 flex gap-3">
-              <button
-                onClick={() => {
-                  clearHistory();
-                  setConfirmClear(false);
-                }}
-                className="button-secondary"
-              >
-                Удалить результаты
-              </button>
-              <button
-                onClick={() => setConfirmClear(false)}
-                className="button-primary"
-              >
-                Сохранить историю
-              </button>
+          <div className="profile-clear-confirmation" role="alert">
+            <p>Удалить все результаты из этого браузера?</p>
+            <div>
+              <button onClick={() => { clearHistory(); setConfirmClear(false); }} className="button-secondary">Удалить результаты</button>
+              <button onClick={() => setConfirmClear(false)} className="button-primary">Сохранить историю</button>
             </div>
           </div>
         )}
         {demo.history.length === 0 ? (
-          <div className="flex flex-col items-center py-12 text-center">
-            <span className="rounded-2xl bg-[#eef0e6] p-4 text-[#8a9a7c]">
-              <Icon name="clock" className="h-7 w-7" />
-            </span>
-            <h3 className="mt-4 text-sm font-semibold">
-              Ваша первая история ещё впереди
-            </h3>
-            <p className="mt-2 max-w-sm text-xs leading-6 text-muted">
-              Завершите подготовку к грозе в демо-комнате.
-              <br />
-              Здесь появятся результат и ваши решения.
-            </p>
-            <Link
-              href="/lobby"
-              className="mt-5 flex items-center gap-2 text-sm font-medium text-forest"
-            >
-              Начать историю <Icon name="arrow" className="h-4 w-4" />
-            </Link>
+          <div className="profile-history-empty">
+            <span className="profile-empty-icon"><Icon name="clock" className="h-7 w-7" /></span>
+            <p className="eyebrow">Первая глава</p>
+            <h3>Хорошие истории начинаются вместе</h3>
+            <p>Подготовьте район к грозе в демо-комнате.<br />Здесь появятся ваши решения и результат.</p>
+            <Link href="/lobby" className="button-secondary">Начать историю <Icon name="arrow" className="h-4 w-4" /></Link>
           </div>
         ) : visibleHistory.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted" role="status">
-            Таких историй пока нет. Всё впереди.
-          </p>
+          <div className="profile-history-filter-empty" role="status">
+            <Icon name="clock" className="h-5 w-5" />
+            <p>Таких историй пока нет. Всё впереди.</p>
+          </div>
         ) : (
-          <ul className="mt-6 divide-y divide-line">
+          <ul className="profile-history-list">
             {visibleHistory.map((result) => (
-              <li
-                key={result.id}
-                className="flex flex-wrap items-center gap-4 py-5"
-              >
-                <span
-                  className={`rounded-xl p-3 ${result.score === 3 ? "bg-[#e8eedf] text-forest" : "bg-[#f2ead9] text-[#a38655]"}`}
-                >
-                  <Icon name={result.score === 3 ? "check" : "cloud"} />
-                </span>
-                <div className="min-w-40 flex-1">
-                  <h3 className="text-sm font-semibold">{result.title}</h3>
-                  {result.personalComplete === true && (
-                    <span className="history-personal">
-                      <Icon name="heart" className="h-3 w-3" /> Личная цель
-                      выполнена
-                    </span>
-                  )}
-                  <p className="mt-1 text-xs leading-6 text-muted">
-                    {result.power === "shelter"
-                      ? "Свет в общем доме"
-                      : result.power === "shop"
-                        ? "Свет в магазине"
-                        : "Аккумулятор не подключён"}{" "}
-                    · Готовность {result.score}/3
-                  </p>
+              <li key={result.id} className="profile-history-entry">
+                <span className="profile-result-icon" data-success={result.score === 3}><Icon name={result.score === 3 ? "check" : "cloud"} /></span>
+                <div className="profile-result-copy">
+                  <h3>{result.title}</h3>
+                  <p>{result.power === "shelter" ? "Свет в общем доме" : result.power === "shop" ? "Свет в магазине" : "Аккумулятор не подключён"}</p>
+                  {result.personalComplete === true && <span className="profile-personal-result"><Icon name="heart" className="h-3 w-3" />Личная цель выполнена</span>}
                 </div>
-                <time dateTime={result.date} className="text-xs text-muted">
-                  {new Date(result.date).toLocaleString("ru-RU", {
-                    day: "numeric",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    timeZone: "Asia/Qyzylorda",
-                  })}
-                </time>
+                <div className="profile-result-detail">
+                  <span className="profile-readiness" role="img" aria-label={"Готовность района " + result.score + " из 3"}>
+                    {[0, 1, 2].map((index) => <span key={index} data-filled={index < result.score} aria-hidden="true" />)}
+                    <span className="profile-readiness-value" aria-hidden="true">{result.score}/3</span>
+                  </span>
+                  <time dateTime={result.date}>{new Date(result.date).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Qyzylorda" })}</time>
+                </div>
               </li>
             ))}
           </ul>
         )}
       </section>
-    </>
+    </div>
   );
 }

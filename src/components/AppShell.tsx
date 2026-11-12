@@ -58,14 +58,17 @@ export default function AppShell({ children }: { children: ReactNode }) {
             className="header-profile"
             aria-label={`Профиль: ${demo.name}`}
           >
-            <span>{demo.name}</span>
+            <span className="header-profile-copy">
+              {demo.name}
+              <small>Ваш профиль</small>
+            </span>
             <span className="[&_svg]:h-9 [&_svg]:w-9">
               <Avatar character={character.id} />
             </span>
           </Link>
         </div>
       </header>
-      <main id="main" className="site-main">
+      <main id="main" className="site-main" tabIndex={-1}>
         {children}
       </main>
       <footer className="site-footer">
@@ -86,6 +89,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
         aria-labelledby="rules-title"
         onClose={() => setRulesOpen(false)}
         onCancel={() => setRulesOpen(false)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setRulesOpen(false);
+          }
+        }}
         onClick={(event) => {
           if (event.target === event.currentTarget) setRulesOpen(false);
         }}

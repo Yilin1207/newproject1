@@ -1,0 +1,430 @@
+.lobby-page {
+  color: #234638;
+}
+
+.lobby-page .lobby-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.lobby-page .lobby-heading > div {
+  margin-bottom: 28px;
+}
+
+.lobby-page .lobby-local-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 8px;
+  margin-top: 7px;
+  padding: 9px 13px;
+  border: 1px solid #dce3d5;
+  border-radius: 100px;
+  color: #587052;
+  background: #eff2e8;
+  font-size: 11px;
+}
+
+.lobby-page .lobby-local-badge > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #7b926c;
+}
+
+.lobby-page .lobby-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0;
+  margin: 0 0 28px;
+  border: 0;
+}
+
+.lobby-page .lobby-steps li {
+  min-width: 0;
+  padding: 15px 18px;
+  gap: 11px;
+  border: 1px solid #e2e5da;
+  border-radius: 14px;
+  color: #5f6d55;
+  background: #f1f2eb;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.lobby-page .lobby-steps li > span {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-color: #d7ddce;
+  background: #fafbf6;
+  font-size: 10px;
+}
+
+.lobby-page .lobby-steps li[aria-current="step"] {
+  border-color: #c7d5be;
+  color: #234638;
+  background: #e7eedf;
+}
+
+.lobby-page .lobby-steps li[aria-current="step"] > span {
+  border-color: #234638;
+  color: #fffdf8;
+  background: #234638;
+}
+
+.lobby-page .lobby-entry-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.lobby-page .lobby-scenario {
+  overflow: hidden;
+  border-color: #d8dfce;
+  border-radius: 24px;
+  box-shadow: 0 10px 30px #23463805;
+}
+
+.lobby-page .lobby-scenario-art {
+  position: relative;
+  height: 260px;
+  overflow: hidden;
+  border-bottom: 1px solid #d8dfce;
+}
+
+.lobby-page .lobby-story-number, .lobby-page .lobby-story-weather {
+  position: absolute;
+  top: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  border: 1px solid #ffffffa1;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  background: #fffdf8e8;
+}
+
+.lobby-page .lobby-story-number {
+  left: 20px;
+}
+
+.lobby-page .lobby-story-weather {
+  right: 20px;
+}
+
+.lobby-page .lobby-scenario-copy {
+  padding: 30px;
+}
+
+.lobby-page .lobby-scenario-copy h2 {
+  margin-top: 10px;
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -.9px;
+}
+
+.lobby-page .lobby-scenario-description {
+  max-width: 440px;
+  margin-top: 14px;
+  color: #626f5b;
+  font-size: 14px;
+  line-height: 1.9;
+}
+
+.lobby-page .lobby-scenario-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 20px;
+  margin-top: 22px;
+  color: #65745d;
+  font-size: 11px;
+}
+
+.lobby-page .lobby-scenario-facts > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.lobby-page .lobby-create-button {
+  width: 100%;
+  margin-top: 26px;
+}
+
+.lobby-page .lobby-entry-help {
+  margin-top: 12px;
+  text-align: center;
+  color: #637158;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.lobby-page .lobby-join {
+  padding: 32px;
+  border-radius: 24px;
+  background: #fffdf8;
+}
+
+.lobby-page .lobby-join-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid #e0e6d5;
+  border-radius: 15px;
+  color: #58734f;
+  background: #edf2e5;
+}
+
+.lobby-page .lobby-join h2 {
+  margin-top: 10px;
+  font-size: 25px;
+  font-weight: 650;
+  letter-spacing: -.6px;
+}
+
+.lobby-page .lobby-join-description {
+  margin-top: 13px;
+  color: #626f5b;
+  font-size: 13px;
+  line-height: 1.9;
+}
+
+.lobby-page .lobby-demo-code {
+  margin-top: 24px;
+  padding: 8px 15px;
+  border: 1px dashed #d6dec9;
+  border-radius: 12px;
+  color: #637158;
+  background: #f5f7ef;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.lobby-page .lobby-fill-code {
+  min-height: 44px;
+  margin-left: 5px;
+  border-radius: 5px;
+  color: #315e4b;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.lobby-page .lobby-local-note {
+  margin-top: 23px;
+  padding-top: 20px;
+  border-top: 1px solid #e3e7dc;
+  color: #637158;
+  font-size: 11px;
+  line-height: 1.9;
+}
+
+.lobby-page .lobby-room-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 24px;
+  padding: 18px 22px;
+  border: 1px solid #d9e1cf;
+  border-radius: 18px;
+  background: #eef2e7;
+}
+
+.lobby-page .lobby-room-bar > div {
+  min-width: 0;
+}
+
+.lobby-page .lobby-leave-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: #637158;
+  font-size: 12px;
+}
+
+.lobby-page .lobby-leave-button:hover {
+  color: #775443;
+  background: #f0e7d9;
+}
+
+.lobby-page .lobby-leave-confirmation {
+  margin-bottom: 22px;
+  padding: 20px;
+  border: 1px solid #e4d2ad;
+  border-radius: 16px;
+  color: #715f3d;
+  background: #faf2e2;
+}
+
+.lobby-page .lobby-leave-confirmation > div {
+  flex-wrap: wrap;
+}
+
+.lobby-page .lobby-preparation-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(310px, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.lobby-page .lobby-team {
+  border-color: #dbe1d2;
+  border-radius: 22px;
+  box-shadow: 0 8px 30px #23463805;
+}
+
+.lobby-page .lobby-team h2 {
+  letter-spacing: -.4px;
+}
+
+.lobby-page .lobby-team-member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.lobby-page .lobby-team-member > svg {
+  flex-shrink: 0;
+}
+
+.lobby-page .lobby-member-copy {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.lobby-page .lobby-ready-status {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 5px;
+  padding: 6px 8px;
+  border-radius: 100px;
+  color: #637158;
+  background: #f2f3ec;
+  font-size: 10px;
+}
+
+.lobby-page .lobby-ready-status > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #b0b7a4;
+}
+
+.lobby-page .lobby-ready-status[data-ready="true"] {
+  color: #42653c;
+  background: #eaf0e1;
+}
+
+.lobby-page .lobby-ready-status[data-ready="true"] > span {
+  background: #7d986b;
+}
+
+.lobby-page .lobby-scenario-reminder {
+  padding: 20px 22px;
+  border: 1px solid #e5dec9;
+  border-radius: 18px;
+  background: #f0ecdf;
+}
+
+@media (max-width: 1100px) {
+  .lobby-page .lobby-preparation-grid {
+    grid-template-columns: 1fr;
+  }
+  .lobby-page .lobby-preparation-grid > .space-y-5 {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 20px;
+  }
+  .lobby-page .lobby-preparation-grid > .space-y-5 > * {
+    margin: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .lobby-page .lobby-heading {
+    flex-direction: column;
+    gap: 0;
+  }
+  .lobby-page .lobby-heading > div {
+    margin-bottom: 16px;
+  }
+  .lobby-page .lobby-local-badge {
+    margin: 0 0 24px;
+  }
+  .lobby-page .lobby-steps {
+    gap: 7px;
+    margin-bottom: 22px;
+  }
+  .lobby-page .lobby-steps li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 13px 12px;
+    font-size: 11px;
+  }
+  .lobby-page .lobby-entry-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .lobby-page .lobby-scenario-art {
+    height: 220px;
+  }
+  .lobby-page .lobby-scenario-copy, .lobby-page .lobby-join {
+    padding: 24px;
+  }
+  .lobby-page .lobby-preparation-grid > .space-y-5 {
+    display: block;
+  }
+  .lobby-page .lobby-preparation-grid > .space-y-5 > * + * {
+    margin-top: 18px;
+  }
+  .lobby-page .lobby-room-bar {
+    padding: 16px;
+    gap: 10px;
+  }
+  .lobby-page .lobby-leave-button {
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 380px) {
+  .lobby-page .lobby-steps li {
+    padding: 12px 9px;
+  }
+  .lobby-page .lobby-story-number, .lobby-page .lobby-story-weather {
+    top: 14px;
+    padding: 7px 9px;
+    font-size: 9px;
+  }
+  .lobby-page .lobby-story-number {
+    left: 14px;
+  }
+  .lobby-page .lobby-story-weather {
+    right: 14px;
+  }
+  .lobby-page .lobby-scenario-copy, .lobby-page .lobby-join {
+    padding: 21px;
+  }
+}
